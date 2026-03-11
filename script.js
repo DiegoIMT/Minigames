@@ -576,4 +576,48 @@ function renderSlots() {
       <div class="panel">
         <div class="slot-machine">
           <div class="slot-reels" id="slotReels"></div>
-          <div class="controls" style="justify-content:center;mar
+          <div class="controls" style="justify-content:center; margin-top:16px;">
+            <button class="btn warn" id="slotSpin">Girar</button>
+          </div>
+        </div>
+        <div class="stats-grid" id="slotStats"></div>
+      </div>
+    `
+  });
+
+  const reelsEl = document.getElementById("slotReels");
+  const statsEl = document.getElementById("slotStats");
+
+  function update() {
+    reelsEl.innerHTML = reels.map(r => `<div class="reel">${r}</div>`).join("");
+    statsEl.innerHTML = [
+      statCard("Lectura del resultado", message),
+      statCard("Idea clave", "Casi ganar no cambia el siguiente giro")
+    ].join("");
+  }
+
+  document.getElementById("slotSpin").onclick = () => {
+    const nearMiss = Math.random() < 0.55;
+
+    if (nearMiss) {
+      const base = symbols[Math.floor(Math.random() * symbols.length)];
+      const otherPool = symbols.filter(s => s !== base);
+      const other = otherPool[Math.floor(Math.random() * otherPool.length)];
+      reels = [base, base, other];
+      message = "¡Quedaste cerquísima! Pero eso no mejora el siguiente giro.";
+    } else {
+      reels = Array.from({ length: 3 }, () => symbols[Math.floor(Math.random() * symbols.length)]);
+      message = reels[0] === reels[1] && reels[1] === reels[2]
+        ? "Ganaste esta vez."
+        : "No hubo premio. La emoción sigue empujando a jugar.";
+    }
+
+    update();
+  };
+
+  update();
+  return () => {};
+}
+
+renderMenu();
+renderProject();
