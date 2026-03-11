@@ -1,4 +1,3 @@
-// script.js
 const projectList = [
   { id: "coin", title: "1. Falacia del jugador", subtitle: "Una racha no cambia la probabilidad del siguiente lanzamiento." },
   { id: "casino", title: "2. ¿Puedes ganarle al casino?", subtitle: "La emoción del juego no elimina la ventaja de la casa." },
@@ -17,7 +16,7 @@ let cleanup = null;
 
 function statCard(label, value, hint = "") {
   return `
-    <div class="stat-card">
+    <div class="stat-card glow-card">
       <span>${label}</span>
       <strong>${value}</strong>
       ${hint ? `<small>${hint}</small>` : ""}
@@ -27,7 +26,7 @@ function statCard(label, value, hint = "") {
 
 function frame({ title, subtitle, myth, lesson, main }) {
   return `
-    <section class="project-frame">
+    <section class="project-frame glass">
       <div class="project-main">
         <div>
           <h2 class="project-title">${title}</h2>
@@ -62,6 +61,7 @@ function renderMenu() {
       activeProject = btn.dataset.id;
       renderMenu();
       renderProject();
+      window.scrollTo({ top: menu.offsetTop - 12, behavior: "smooth" });
     });
   });
 }
@@ -96,6 +96,7 @@ function renderCoin() {
     lesson: "Aunque haya una racha larga, el siguiente lanzamiento sigue teniendo la misma probabilidad que al inicio.",
     main: `
       <div class="panel">
+        <div class="coin-stage"><div class="coin" id="coinVisual">🪙</div></div>
         <div class="controls">
           <button class="btn primary" id="coinOnce">Lanzar una vez</button>
           <button class="btn secondary" id="coinAuto">Auto lanzar</button>
@@ -110,17 +111,22 @@ function renderCoin() {
   const historyEl = document.getElementById("coinHistory");
   const statsEl = document.getElementById("coinStats");
   const autoBtn = document.getElementById("coinAuto");
+  const coinVisual = document.getElementById("coinVisual");
 
   function update() {
     const heads = history.filter(x => x === "Cara").length;
     const tails = history.filter(x => x === "Cruz").length;
     let streak = 0;
+
     if (history.length) {
       const first = history[0];
       for (const item of history) {
         if (item === first) streak++;
         else break;
       }
+      coinVisual.textContent = first === "Cara" ? "🙂" : "✖";
+    } else {
+      coinVisual.textContent = "🪙";
     }
 
     statsEl.innerHTML = [
@@ -131,26 +137,31 @@ function renderCoin() {
 
     historyEl.innerHTML = history.length
       ? history.map(item => `<div class="pill ${item === "Cara" ? "heads" : "tails"}">${item === "Cara" ? "🙂 Cara" : "✖ Cruz"}</div>`).join("")
-      : `<span style="color:#64748b;">Aquí aparecerá el historial visual.</span>`;
+      : `<span style="color:#cbd5e1;">Aquí aparecerá el historial visual.</span>`;
   }
 
   function launch() {
+    coinVisual.classList.remove("spin");
+    void coinVisual.offsetWidth;
+    coinVisual.classList.add("spin");
     history.unshift(Math.random() < 0.5 ? "Cara" : "Cruz");
     history = history.slice(0, 24);
-    update();
+    setTimeout(update, 230);
   }
 
   document.getElementById("coinOnce").onclick = launch;
+
   autoBtn.onclick = () => {
     if (autoId) {
       clearInterval(autoId);
       autoId = null;
       autoBtn.textContent = "Auto lanzar";
     } else {
-      autoId = setInterval(launch, 180);
+      autoId = setInterval(launch, 800);
       autoBtn.textContent = "Detener auto";
     }
   };
+
   document.getElementById("coinReset").onclick = () => {
     history = [];
     if (autoId) clearInterval(autoId);
@@ -167,6 +178,7 @@ function renderCasino() {
   let balance = 100;
   let msg = "Apuesta 10 fichas al rojo.";
   let spins = [];
+  let angle = 0;
   const wheel = ["Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro", "Verde"];
 
   app.innerHTML = frame({
@@ -176,7 +188,9 @@ function renderCasino() {
     lesson: "Puedes tener rachas buenas, pero si el juego tiene ventaja para la casa, a largo plazo el saldo suele caer.",
     main: `
       <div class="panel">
-        <div class="casino-wheel"><span>Rojo / Negro / Verde</span></div>
+        <div class="casino-wheel-wrap">
+          <div class="casino-wheel" id="casinoWheel"><span>Rojo / Negro / Verde</span></div>
+        </div>
         <div class="controls" style="margin-top:16px;">
           <button class="btn success" id="casinoSpin">Girar</button>
           <button class="btn outline" id="casinoReset">Reiniciar</button>
@@ -189,6 +203,7 @@ function renderCasino() {
 
   const statsEl = document.getElementById("casinoStats");
   const historyEl = document.getElementById("casinoHistory");
+  const wheelEl = document.getElementById("casinoWheel");
 
   function update() {
     statsEl.innerHTML = [
@@ -205,6 +220,9 @@ function renderCasino() {
     spins.unshift(result);
     spins = spins.slice(0, 18);
 
+    angle += 1080 + Math.floor(Math.random() * 720);
+    wheelEl.style.transform = `rotate(${angle}deg)`;
+
     if (result === "Rojo") {
       balance += 10;
       msg = "Ganaste 10 fichas. Se siente bien… pero sigue jugando un rato más.";
@@ -213,13 +231,15 @@ function renderCasino() {
       msg = result === "Verde" ? "Salió verde. La casa sonríe." : "Perdiste 10 fichas. La ventaja de la casa sigue allí.";
     }
 
-    update();
+    setTimeout(update, 500);
   };
 
   document.getElementById("casinoReset").onclick = () => {
     balance = 100;
     msg = "Apuesta 10 fichas al rojo.";
     spins = [];
+    angle = 0;
+    wheelEl.style.transform = "rotate(0deg)";
     update();
   };
 
@@ -265,19 +285,23 @@ function renderCards() {
       <div class="card-tile">
         <strong>${card}</strong>
         <small>Frecuencia</small>
-        <div style="font-size:22px;font-weight:bold;color:#4338ca;margin-top:6px;">${counts[card]}</div>
+        <div style="font-size:22px;font-weight:bold;color:#93c5fd;margin-top:6px;">${counts[card]}</div>
       </div>
     `).join("");
 
-    historyEl.innerHTML = draws.map(card => `<div class="card-mini">${card}</div>`).join("");
+    historyEl.innerHTML = draws.length
+      ? draws.map(card => `<div class="card-mini">${card}</div>`).join("")
+      : `<span style="color:#cbd5e1;">Aquí irán cayendo las cartas robadas.</span>`;
   }
 
   document.getElementById("drawOne").onclick = drawOne;
+
   document.getElementById("drawMany").onclick = () => {
     burstTimers.forEach(clearTimeout);
     burstTimers = [];
-    for (let i = 0; i < 15; i++) burstTimers.push(setTimeout(drawOne, i * 70));
+    for (let i = 0; i < 15; i++) burstTimers.push(setTimeout(drawOne, i * 95));
   };
+
   document.getElementById("drawReset").onclick = () => {
     draws = [];
     burstTimers.forEach(clearTimeout);
@@ -377,6 +401,7 @@ function renderRare() {
   let wins = 0;
   const chance = 0.05;
   let timers = [];
+  let recent = Array(10).fill(false);
 
   app.innerHTML = frame({
     title: "¿Más intentos = éxito seguro?",
@@ -393,6 +418,7 @@ function renderRare() {
         <div class="stats-grid" id="rareStats"></div>
         <div class="panel">
           <div class="progress-bar"><div id="rareBar"></div></div>
+          <div class="attempt-stage" id="attemptStage" style="margin-top:14px;"></div>
           <p>Aunque hagas muchos intentos, puedes pasar un buen rato sin ganar.</p>
         </div>
       </div>
@@ -401,10 +427,14 @@ function renderRare() {
 
   const statsEl = document.getElementById("rareStats");
   const bar = document.getElementById("rareBar");
+  const stage = document.getElementById("attemptStage");
 
   function tryOnce() {
     attempts++;
-    if (Math.random() < chance) wins++;
+    const hit = Math.random() < chance;
+    if (hit) wins++;
+    recent.unshift(hit);
+    recent = recent.slice(0, 10);
     update();
   }
 
@@ -417,17 +447,21 @@ function renderRare() {
 
     const width = Math.min((wins / Math.max(attempts || 1, 1)) * 100 * 4, 100);
     bar.style.width = `${width}%`;
+    stage.innerHTML = recent.map(hit => `<div class="orb ${hit ? "hit" : ""}"></div>`).join("");
   }
 
   document.getElementById("rareOnce").onclick = tryOnce;
+
   document.getElementById("rareMany").onclick = () => {
     timers.forEach(clearTimeout);
     timers = [];
-    for (let i = 0; i < 20; i++) timers.push(setTimeout(tryOnce, i * 60));
+    for (let i = 0; i < 20; i++) timers.push(setTimeout(tryOnce, i * 95));
   };
+
   document.getElementById("rareReset").onclick = () => {
     attempts = 0;
     wins = 0;
+    recent = Array(10).fill(false);
     timers.forEach(clearTimeout);
     timers = [];
     update();
@@ -479,18 +513,22 @@ function renderLoot() {
     };
 
     statsEl.innerHTML = Object.entries(counts).map(([key, val]) => statCard(key, val)).join("");
-    gridEl.innerHTML = items.map(item => {
-      const css = item === "Legendario" ? "legendary" : item === "Épico" ? "epic" : item === "Raro" ? "rare" : "common";
-      return `<div class="loot-item ${css}">${item}</div>`;
-    }).join("");
+    gridEl.innerHTML = items.length
+      ? items.map(item => {
+          const css = item === "Legendario" ? "legendary" : item === "Épico" ? "epic" : item === "Raro" ? "rare" : "common";
+          return `<div class="loot-item ${css}">${item}</div>`;
+        }).join("")
+      : `<span style="color:#cbd5e1;">Aquí aparecerán los premios obtenidos.</span>`;
   }
 
   document.getElementById("lootOne").onclick = openOne;
+
   document.getElementById("lootMany").onclick = () => {
     timers.forEach(clearTimeout);
     timers = [];
-    for (let i = 0; i < 15; i++) timers.push(setTimeout(openOne, i * 80));
+    for (let i = 0; i < 15; i++) timers.push(setTimeout(openOne, i * 110));
   };
+
   document.getElementById("lootReset").onclick = () => {
     items = [];
     timers.forEach(clearTimeout);
@@ -535,7 +573,9 @@ function renderNumbers() {
 
   function update() {
     const counts = Array.from({ length: 10 }, (_, i) => nums.filter(n => n === i + 1).length);
-    historyEl.innerHTML = nums.map(n => `<div class="num">${n}</div>`).join("");
+    historyEl.innerHTML = nums.length
+      ? nums.map(n => `<div class="num">${n}</div>`).join("")
+      : `<span style="color:#cbd5e1;">Los números generados aparecerán aquí.</span>`;
     barsEl.innerHTML = counts.map((count, i) => `
       <div class="number-bar">
         <div>Número ${i + 1}</div>
@@ -546,11 +586,13 @@ function renderNumbers() {
   }
 
   document.getElementById("numOne").onclick = roll;
+
   document.getElementById("numMany").onclick = () => {
     timers.forEach(clearTimeout);
     timers = [];
-    for (let i = 0; i < 25; i++) timers.push(setTimeout(roll, i * 70));
+    for (let i = 0; i < 25; i++) timers.push(setTimeout(roll, i * 85));
   };
+
   document.getElementById("numReset").onclick = () => {
     nums = [];
     timers.forEach(clearTimeout);
@@ -588,8 +630,8 @@ function renderSlots() {
   const reelsEl = document.getElementById("slotReels");
   const statsEl = document.getElementById("slotStats");
 
-  function update() {
-    reelsEl.innerHTML = reels.map(r => `<div class="reel">${r}</div>`).join("");
+  function update(spinAnim) {
+    reelsEl.innerHTML = reels.map(r => `<div class="reel ${spinAnim ? "spin" : ""}">${r}</div>`).join("");
     statsEl.innerHTML = [
       statCard("Lectura del resultado", message),
       statCard("Idea clave", "Casi ganar no cambia el siguiente giro")
@@ -612,10 +654,10 @@ function renderSlots() {
         : "No hubo premio. La emoción sigue empujando a jugar.";
     }
 
-    update();
+    update(true);
   };
 
-  update();
+  update(false);
   return () => {};
 }
 
