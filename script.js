@@ -178,8 +178,15 @@ function renderCasino() {
   let balance = 100;
   let msg = "Apuesta 10 fichas al rojo.";
   let spins = [];
-  let angle = 0;
-  const wheel = ["Rojo", "Negro", "Rojo", "Negro", "Rojo", "Negro", "Verde"];
+  let currentAngle = 0;
+
+  const sectors = [
+    { name: "Rojo", start: 0, end: 102 },
+    { name: "Negro", start: 102, end: 204 },
+    { name: "Rojo", start: 204, end: 306 },
+    { name: "Negro", start: 306, end: 348 },
+    { name: "Verde", start: 348, end: 360 }
+  ];
 
   app.innerHTML = frame({
     title: "¿Puedes ganarle al casino?",
@@ -189,12 +196,17 @@ function renderCasino() {
     main: `
       <div class="panel">
         <div class="casino-wheel-wrap">
-          <div class="casino-wheel" id="casinoWheel"><span>Rojo / Negro / Verde</span></div>
+          <div class="casino-pointer"></div>
+          <div class="casino-wheel" id="casinoWheel">
+            <div class="casino-center">Rojo / Negro / Verde</div>
+          </div>
         </div>
+
         <div class="controls" style="margin-top:16px;">
           <button class="btn success" id="casinoSpin">Girar</button>
           <button class="btn outline" id="casinoReset">Reiniciar</button>
         </div>
+
         <div class="stats-grid" id="casinoStats"></div>
         <div class="history" id="casinoHistory"></div>
       </div>
@@ -212,33 +224,49 @@ function renderCasino() {
       statCard("Mensaje", msg)
     ].join("");
 
-    historyEl.innerHTML = spins.map(s => `<div class="pill ${s === "Rojo" ? "red" : s === "Negro" ? "black" : "green"}">${s}</div>`).join("");
+    historyEl.innerHTML = spins.length
+      ? spins.map(s => `<div class="pill ${s === "Rojo" ? "red" : s === "Negro" ? "black" : "green"}">${s}</div>`).join("")
+      : `<span style="color:#cbd5e1;">Aquí aparecerán los resultados de cada giro.</span>`;
+  }
+
+  function getRandomSector() {
+    return sectors[Math.floor(Math.random() * sectors.length)];
+  }
+
+  function getTargetAngleForSector(sector) {
+    const center = (sector.start + sector.end) / 2;
+    const extraSpins = 1440;
+    return currentAngle + extraSpins + (360 - center);
   }
 
   document.getElementById("casinoSpin").onclick = () => {
-    const result = wheel[Math.floor(Math.random() * wheel.length)];
+    const sector = getRandomSector();
+    const result = sector.name;
+
+    currentAngle = getTargetAngleForSector(sector);
+    wheelEl.style.transform = `rotate(${currentAngle}deg)`;
+
     spins.unshift(result);
     spins = spins.slice(0, 18);
-
-    angle += 1080 + Math.floor(Math.random() * 720);
-    wheelEl.style.transform = `rotate(${angle}deg)`;
 
     if (result === "Rojo") {
       balance += 10;
       msg = "Ganaste 10 fichas. Se siente bien… pero sigue jugando un rato más.";
     } else {
       balance -= 10;
-      msg = result === "Verde" ? "Salió verde. La casa sonríe." : "Perdiste 10 fichas. La ventaja de la casa sigue allí.";
+      msg = result === "Verde"
+        ? "Salió verde. La casa sonríe."
+        : "Perdiste 10 fichas. La ventaja de la casa sigue allí.";
     }
 
-    setTimeout(update, 500);
+    setTimeout(update, 400);
   };
 
   document.getElementById("casinoReset").onclick = () => {
     balance = 100;
     msg = "Apuesta 10 fichas al rojo.";
     spins = [];
-    angle = 0;
+    currentAngle = 0;
     wheelEl.style.transform = "rotate(0deg)";
     update();
   };
