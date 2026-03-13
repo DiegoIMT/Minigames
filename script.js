@@ -179,13 +179,13 @@ function renderCasino() {
   let msg = "Apuesta 10 fichas al rojo.";
   let spins = [];
   let currentAngle = 0;
+  let spinning = false;
 
   const sectors = [
-    { name: "Rojo", start: 0, end: 102 },
-    { name: "Negro", start: 102, end: 204 },
-    { name: "Rojo", start: 204, end: 306 },
-    { name: "Negro", start: 306, end: 348 },
-    { name: "Verde", start: 348, end: 360 }
+    { name: "Rojo", start: 0, end: 120 },
+    { name: "Negro", start: 120, end: 240 },
+    { name: "Rojo", start: 240, end: 330 },
+    { name: "Verde", start: 330, end: 360 }
   ];
 
   app.innerHTML = frame({
@@ -216,6 +216,8 @@ function renderCasino() {
   const statsEl = document.getElementById("casinoStats");
   const historyEl = document.getElementById("casinoHistory");
   const wheelEl = document.getElementById("casinoWheel");
+  const spinBtn = document.getElementById("casinoSpin");
+  const resetBtn = document.getElementById("casinoReset");
 
   function update() {
     statsEl.innerHTML = [
@@ -235,34 +237,49 @@ function renderCasino() {
 
   function getTargetAngleForSector(sector) {
     const center = (sector.start + sector.end) / 2;
-    const extraSpins = 1440;
-    return currentAngle + extraSpins + (360 - center);
+    const fullTurns = 1440;
+    return currentAngle + fullTurns + (360 - center);
   }
 
-  document.getElementById("casinoSpin").onclick = () => {
+  spinBtn.onclick = () => {
+    if (spinning) return;
+
+    spinning = true;
+    spinBtn.disabled = true;
+    resetBtn.disabled = true;
+    spinBtn.textContent = "Girando...";
+
     const sector = getRandomSector();
     const result = sector.name;
 
     currentAngle = getTargetAngleForSector(sector);
     wheelEl.style.transform = `rotate(${currentAngle}deg)`;
 
-    spins.unshift(result);
-    spins = spins.slice(0, 18);
+    setTimeout(() => {
+      spins.unshift(result);
+      spins = spins.slice(0, 18);
 
-    if (result === "Rojo") {
-      balance += 10;
-      msg = "Ganaste 10 fichas. Se siente bien… pero sigue jugando un rato más.";
-    } else {
-      balance -= 10;
-      msg = result === "Verde"
-        ? "Salió verde. La casa sonríe."
-        : "Perdiste 10 fichas. La ventaja de la casa sigue allí.";
-    }
+      if (result === "Rojo") {
+        balance += 10;
+        msg = "Ganaste 10 fichas. Se siente bien… pero sigue jugando un rato más.";
+      } else {
+        balance -= 10;
+        msg = result === "Verde"
+          ? "Salió verde. La casa sonríe."
+          : "Perdiste 10 fichas. La ventaja de la casa sigue allí.";
+      }
 
-    setTimeout(update, 400);
+      update();
+      spinning = false;
+      spinBtn.disabled = false;
+      resetBtn.disabled = false;
+      spinBtn.textContent = "Girar";
+    }, 3200);
   };
 
-  document.getElementById("casinoReset").onclick = () => {
+  resetBtn.onclick = () => {
+    if (spinning) return;
+
     balance = 100;
     msg = "Apuesta 10 fichas al rojo.";
     spins = [];
@@ -274,6 +291,7 @@ function renderCasino() {
   update();
   return () => {};
 }
+
 
 function renderCards() {
   let draws = [];
